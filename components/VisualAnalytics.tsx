@@ -3,10 +3,17 @@
 import { useMemo, useState, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
-export default function VisualAnalytics({ feedbacks }: { feedbacks: any[] }) {
+interface Feedback {
+  id: string;
+  rating: number;
+  createdAt: Date | string;
+}
+
+export default function VisualAnalytics({ feedbacks }: { feedbacks: Feedback[] }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
