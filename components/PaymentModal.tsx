@@ -56,102 +56,102 @@ export default function PaymentModal({ isOpen, onClose, planName, planPrice }: P
 
   const handlePayment = async () => {
     console.log("Payment Triggered. Method:", method);
-    
+
     // If user is using Razorpay
     if (method === "card") {
-       if (typeof (window as any).Razorpay === "undefined") {
-         console.error("Razorpay script not found on window object");
-         alert("Razorpay is still loading. Please wait a moment and try again.");
-         return;
-       }
+      if (typeof (window as any).Razorpay === "undefined") {
+        console.error("Razorpay script not found on window object");
+        alert("Razorpay is still loading. Please wait a moment and try again.");
+        return;
+      }
 
-       const keyId = "rzp_test_Smp3EkuLcx908E"; // Your current key
-       
-       if (keyId === "YOUR_KEY_HERE" || !keyId) {
-         alert("Please add your Razorpay Key ID in the code!");
-         return;
-       }
+      const keyId = "rzp_test_Smp3EkuLcx908E"; // Your current key
 
-       const options = {
-         key: keyId,
-         amount: finalPrice * 100, // Amount in paise
-         currency: "INR",
-         name: "IgniteQR",
-         description: `${planName} Subscription`,
-         image: "https://igniteqr.app/logo.png",
-         config: {
-           display: {
-             blocks: {
-               utib: {
-                 name: "Pay via UPI",
-                 instruments: [
-                   { method: "upi" },
-                 ],
-               },
-             },
-             sequence: ["block.utib", "block.cards"],
-             preferences: {
-               show_default_blocks: true,
-             },
-           },
-         },
-         handler: async function (response: any) {
-           // This function runs ONLY after a successful payment window completion
-           setStatus("verifying");
-           
-           try {
-             // Call our secure server-side verification route
-             const verifyRes = await fetch("/api/verify-payment", {
-               method: "POST",
-               headers: { "Content-Type": "application/json" },
-               body: JSON.stringify({ paymentId: response.razorpay_payment_id }),
-             });
+      if (keyId) {
+        alert("Please add your Razorpay Key ID in the code!");
+        return;
+      }
 
-             const verifyData = await verifyRes.json();
+      const options = {
+        key: keyId,
+        amount: finalPrice * 100, // Amount in paise
+        currency: "INR",
+        name: "IgniteQR",
+        description: `${planName} Subscription`,
+        image: "https://igniteqr.app/logo.png",
+        config: {
+          display: {
+            blocks: {
+              utib: {
+                name: "Pay via UPI",
+                instruments: [
+                  { method: "upi" },
+                ],
+              },
+            },
+            sequence: ["block.utib", "block.cards"],
+            preferences: {
+              show_default_blocks: true,
+            },
+          },
+        },
+        handler: async function (response: any) {
+          // This function runs ONLY after a successful payment window completion
+          setStatus("verifying");
 
-             if (verifyData.success) {
-               setStatus("success");
-               setTimeout(() => {
-                 router.push("/dashboard");
-               }, 1500);
-             } else {
-               alert("Payment Verification Failed. Please contact support.");
-               setStatus("idle");
-             }
-           } catch (error) {
-             console.error("Verification Error:", error);
-             alert("Something went wrong during verification.");
-             setStatus("idle");
-           }
-         },
+          try {
+            // Call our secure server-side verification route
+            const verifyRes = await fetch("/api/verify-payment", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ paymentId: response.razorpay_payment_id }),
+            });
 
-         prefill: {
-           name: "",
-           email: "",
-           contact: ""
-         },
-         theme: {
-           color: "#f59e0b"
-         }
-       };
+            const verifyData = await verifyRes.json();
 
-       const rzp = new (window as any).Razorpay(options);
-       rzp.open();
+            if (verifyData.success) {
+              setStatus("success");
+              setTimeout(() => {
+                router.push("/dashboard");
+              }, 1500);
+            } else {
+              alert("Payment Verification Failed. Please contact support.");
+              setStatus("idle");
+            }
+          } catch (error) {
+            console.error("Verification Error:", error);
+            alert("Something went wrong during verification.");
+            setStatus("idle");
+          }
+        },
+
+        prefill: {
+          name: "",
+          email: "",
+          contact: ""
+        },
+        theme: {
+          color: "#f59e0b"
+        }
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
     } else if (method === "paypal") {
-       // PayPal simulation (usually requires a redirect)
-       setStatus("verifying");
-       setTimeout(() => setStatus("success"), 2000);
-       setTimeout(() => router.push("/dashboard"), 3500);
+      // PayPal simulation (usually requires a redirect)
+      setStatus("verifying");
+      setTimeout(() => setStatus("success"), 2000);
+      setTimeout(() => router.push("/dashboard"), 3500);
     } else {
-       // QR Pay logic (Manual confirmation)
-       // Since this is direct UPI, we still have to use manual verification
-       setStatus("verifying");
-       setTimeout(() => {
-         setStatus("success");
-         setTimeout(() => {
-           router.push("/dashboard");
-         }, 1500);
-       }, 3000);
+      // QR Pay logic (Manual confirmation)
+      // Since this is direct UPI, we still have to use manual verification
+      setStatus("verifying");
+      setTimeout(() => {
+        setStatus("success");
+        setTimeout(() => {
+          router.push("/dashboard");
+        }, 1500);
+      }, 3000);
     }
   };
 
@@ -164,13 +164,13 @@ export default function PaymentModal({ isOpen, onClose, planName, planPrice }: P
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/90 backdrop-blur-md cursor-pointer" 
+      <div
+        className="absolute inset-0 bg-black/90 backdrop-blur-md cursor-pointer"
         onClick={onClose}
       ></div>
       {/* Modal Content */}
       <div className="relative w-full max-w-xl bg-[#111113] border border-white/10 rounded-[3rem] p-6 md:p-10 space-y-5 shadow-[0_30px_100px_rgba(0,0,0,0.8)] max-h-[95vh] overflow-y-auto no-scrollbar">
-        
+
         {/* Status Overlays */}
         {status === "verifying" && (
           <div className="absolute inset-0 z-[110] bg-[#111113] flex flex-col items-center justify-center space-y-6 animate-in fade-in duration-500">
@@ -195,8 +195,8 @@ export default function PaymentModal({ isOpen, onClose, planName, planPrice }: P
         )}
 
         {/* Close Button */}
-        <button 
-          onClick={onClose} 
+        <button
+          onClick={onClose}
           className="absolute top-6 right-6 text-zinc-500 hover:text-white transition-colors z-50 p-2"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -230,14 +230,14 @@ export default function PaymentModal({ isOpen, onClose, planName, planPrice }: P
         {/* Coupon Code */}
         <div className="space-y-2">
           <div className="flex gap-2">
-            <input 
-              type="text" 
-              placeholder="Coupon Code" 
+            <input
+              type="text"
+              placeholder="Coupon Code"
               value={couponCode}
               onChange={(e) => setCouponCode(e.target.value)}
               className="flex-1 bg-zinc-900/50 border border-white/5 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-amber-500/50 transition uppercase"
             />
-            <button 
+            <button
               onClick={applyCoupon}
               className="bg-white/5 hover:bg-white/10 text-white border border-white/5 px-4 rounded-xl text-[9px] font-black uppercase tracking-widest transition"
             >
@@ -253,9 +253,8 @@ export default function PaymentModal({ isOpen, onClose, planName, planPrice }: P
             <button
               key={m}
               onClick={() => setMethod(m)}
-              className={`flex-1 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
-                method === m ? "bg-amber-500 text-black shadow-lg" : "text-zinc-500 hover:text-white"
-              }`}
+              className={`flex-1 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${method === m ? "bg-amber-500 text-black shadow-lg" : "text-zinc-500 hover:text-white"
+                }`}
             >
               {m === "card" ? "Razorpay" : m === "paypal" ? "PayPal" : "QR Pay"}
             </button>
@@ -267,7 +266,7 @@ export default function PaymentModal({ isOpen, onClose, planName, planPrice }: P
           {method === "card" && (
             <div className="text-center space-y-4">
               <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto text-amber-500">
-                <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+                <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" /></svg>
               </div>
               <p className="text-zinc-500 text-xs font-medium px-8 uppercase tracking-widest">Secure Payments via Razorpay</p>
             </div>
@@ -276,7 +275,7 @@ export default function PaymentModal({ isOpen, onClose, planName, planPrice }: P
           {method === "paypal" && (
             <div className="text-center space-y-4">
               <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto text-blue-500">
-                <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.354c.056-.341.353-.585.699-.585h6.634c.347 0 .641.244.698.585l.001.006c.038.232-.128.452-.361.477-.168.018-.328-.088-.36-.255l-.001-.005L10.05 13.55c-.056.341-.353.585-.699.585H7.311a.641.641 0 0 0-.633.74l1.32 7.794c.056.331-.194.628-.522.628v.04zM19.262 7.215c0 3.844-4.57 3.844-4.57 3.844h-2.148l.707-4.175c.056-.341.353-.585.699-.585h.742c2.148 0 4.57.172 4.57 2.916zM15.438 12.5h-.732c-.347 0-.641.244-.698.585l-.01.06c-.038.232.128.452.361.477.168.018.328-.088.36-.255l.001-.005.109-.64c.056-.331-.194-.628-.522-.628h1.13c1.72 0 3.518.172 3.518 2.316 0 3.044-3.518 3.044-3.518 3.044h-1.648l.707-4.175c.056-.341.353-.585.699-.585h.442z"/></svg>
+                <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.354c.056-.341.353-.585.699-.585h6.634c.347 0 .641.244.698.585l.001.006c.038.232-.128.452-.361.477-.168.018-.328-.088-.36-.255l-.001-.005L10.05 13.55c-.056.341-.353.585-.699.585H7.311a.641.641 0 0 0-.633.74l1.32 7.794c.056.331-.194.628-.522.628v.04zM19.262 7.215c0 3.844-4.57 3.844-4.57 3.844h-2.148l.707-4.175c.056-.341.353-.585.699-.585h.742c2.148 0 4.57.172 4.57 2.916zM15.438 12.5h-.732c-.347 0-.641.244-.698.585l-.01.06c-.038.232.128.452.361.477.168.018.328-.088.36-.255l.001-.005.109-.64c.056-.331-.194-.628-.522-.628h1.13c1.72 0 3.518.172 3.518 2.316 0 3.044-3.518 3.044-3.518 3.044h-1.648l.707-4.175c.056-.341.353-.585.699-.585h.442z" /></svg>
               </div>
               <p className="text-zinc-500 text-xs font-medium px-8 uppercase tracking-widest">PayPal Global Gateway</p>
             </div>
@@ -286,7 +285,7 @@ export default function PaymentModal({ isOpen, onClose, planName, planPrice }: P
             <div className="flex flex-col items-center justify-center space-y-3">
               <div className="p-3 bg-white rounded-2xl shadow-[0_0_40px_rgba(255,255,255,0.05)]">
                 {mounted ? (
-                  <QRCodeSVG 
+                  <QRCodeSVG
                     value={`upi://pay?pa=8802720964@ptsbi&pn=IgniteQR&am=${finalPrice}&cu=INR&tn=IgniteQR ${planName} Plan`}
                     size={110}
                     fgColor="#000000"
@@ -305,7 +304,7 @@ export default function PaymentModal({ isOpen, onClose, planName, planPrice }: P
         </div>
 
         {/* Action Button */}
-        <button 
+        <button
           onClick={handlePayment}
           className="w-full bg-amber-500 text-black py-4 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.01] active:scale-[0.99] transition shadow-[0_15px_30px_rgba(245,158,11,0.2)]"
         >
@@ -315,8 +314,8 @@ export default function PaymentModal({ isOpen, onClose, planName, planPrice }: P
         {/* Trust Footer */}
         <div className="flex items-center justify-between px-2 opacity-30 pt-2">
           <div className="flex items-center gap-2 text-zinc-500">
-             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-             <span className="text-[8px] font-black uppercase tracking-[0.2em]">SSL Secured</span>
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+            <span className="text-[8px] font-black uppercase tracking-[0.2em]">SSL Secured</span>
           </div>
           <div className="flex gap-4">
             <img src="https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_logo%2C_revised_2016.svg" className="h-2.5 grayscale" alt="Stripe" />
