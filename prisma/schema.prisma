@@ -1,0 +1,42 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Business {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  googleLink  String
+  location    String?  @default("Main Branch")
+  userId      String
+
+  qrCodes     QrCode[]
+}
+
+model QrCode {
+  id         String @id @default(cuid())
+  businessId String
+  scans      Int    @default(0)
+
+  business  Business   @relation(fields: [businessId], references: [id])
+  feedbacks Feedback[]
+}
+
+model Feedback {
+  id             String   @id @default(cuid())
+  rating         Int
+  content        String?
+  aiContent      String?
+  customerName   String?
+  customerStatus String?  @default("Active")
+  qrCodeId       String
+  qrCode         QrCode   @relation(fields: [qrCodeId], references: [id])
+  createdAt      DateTime @default(now())
+}
