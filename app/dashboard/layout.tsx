@@ -24,8 +24,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <div className="text-zinc-300 text-sm font-black hidden sm:block">
               Welcome, <span className="text-white">{user?.firstName || "User"}</span>!
             </div>
-            <UserButton afterSignOutUrl="/" appearance={{ elements: { userButtonAvatarBox: "w-8 h-8 rounded-full border border-zinc-700 shadow-lg" } }} />
-          </div>
+            <UserButton appearance={{}} />          </div>
         </header>
 
 
