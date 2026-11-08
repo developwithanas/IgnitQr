@@ -1,33 +1,31 @@
 export const dynamic = "force-dynamic";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getSession } from "@/lib/auth";
 
 export async function POST(req: Request) {
   try {
-    // 1. Extract Identity
-    const { userId } = await auth();
+    const session = await getSession();
+    const userId = session?.userId;
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 2. Parse Request Body (Google Maps link add kiya yahan)
-    const { name, description, googleMaps } = await req.json();
+    const { name, googleMaps } = await req.json();
 
     if (!name) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
-    // 3. Save to Supabase
     const newBusiness = await prisma.business.create({
       data: {
         name,
-        googleLink: googleMaps || "", // Map googleMaps to googleLink
-        slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Math.random().toString(36).substring(2, 7), // generate slug
+        googleLink: googleMaps || "",
+        slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Math.random().toString(36).substring(2, 7),
         userId,
         qrCodes: {
-          create: {} // Ye wahi purana logic jo aapne image mein dikhaya
+          create: {}
         }
       },
       include: {
@@ -35,9 +33,8 @@ export async function POST(req: Request) {
       }
     });
 
-    // 4. Feedback URL generate karo
-    const businessId = newBusiness.qrCodes[0].id;
-    const feedbackUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/feedback/${businessId}`;
+    const qrCodeId = newBusiness.qrCodes[0].id;
+    const feedbackUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/feedback/${qrCodeId}`;
 
     return NextResponse.json({
       success: true,

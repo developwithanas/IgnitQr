@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -13,6 +12,10 @@ interface EditProfileModalProps {
 export default function EditProfileModal({ isOpen, onClose, user, business }: EditProfileModalProps) {
   const [companyName, setCompanyName] = useState(business?.name || "");
   const [isLoading, setIsLoading] = useState(false);
+
+  const avatarUrl =
+    user?.imageUrl ||
+    `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user?.firstName || "User")}`;
 
   if (!isOpen) return null;
 
@@ -53,7 +56,7 @@ export default function EditProfileModal({ isOpen, onClose, user, business }: Ed
         <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/5">
           <div className="flex items-center gap-3">
              <div className="w-8 h-8 rounded-full overflow-hidden border border-white/20">
-                <img src={user?.imageUrl} alt="Avatar" className="w-full h-full object-cover" />
+                <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
              </div>
              <h2 className="text-white font-bold text-lg">
                 {user?.firstName} {user?.lastName} <span className="text-white/40 font-medium">/ Edit Profile</span>
@@ -86,7 +89,7 @@ export default function EditProfileModal({ isOpen, onClose, user, business }: Ed
               <p className="text-xs font-black uppercase text-zinc-500 tracking-widest">Profile Picture</p>
               <div className="flex items-center gap-6">
                 <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-zinc-800 relative group">
-                  <img src={user?.imageUrl} alt="Profile" className="w-full h-full object-cover" />
+                  <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
                 </div>
 
                 <div className="flex-1 grid grid-cols-2 gap-3">
@@ -174,9 +177,9 @@ export default function EditProfileModal({ isOpen, onClose, user, business }: Ed
                <label className="text-xs font-black uppercase text-zinc-500 tracking-widest block">Subscription</label>
                <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full overflow-hidden border border-white/10 bg-zinc-800 flex items-center justify-center">
-                     <img src={user?.imageUrl} alt="User" className="w-full h-full object-cover" />
+                     <img src={avatarUrl} alt="User" className="w-full h-full object-cover" />
                   </div>
-                  <p className="text-xs font-bold text-zinc-400">Subscription Plan: <span className="text-white">IgniteQR Pro Plan</span> <span className="text-green-500 font-black">(Active)</span></p>
+                  <p className="text-xs font-bold text-zinc-400">Subscription Plan: <span className="text-white">{user?.planLabel || "Starter Plan"}</span> <span className="text-green-500 font-black">(Active)</span></p>
                </div>
                <button className="w-full bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-black uppercase py-3 rounded-xl transition border border-white/5">
                   Manage Plan

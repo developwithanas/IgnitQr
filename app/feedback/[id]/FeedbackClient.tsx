@@ -60,7 +60,7 @@ export default function FeedbackClient({ qrCodeId, businessName, location, googl
         const shuffled = [...fallbackList].sort(() => 0.5 - Math.random());
         setQuotes(shuffled.slice(0, 3));
       }
-    } catch (e) {
+    } catch {
       console.warn("Network or server error while generating quotes.");
       const fallbackList = [
         `Absolutely wonderful experience at ${businessName}. I couldn't be happier with the service!`,
@@ -195,7 +195,7 @@ export default function FeedbackClient({ qrCodeId, businessName, location, googl
                 key={idx} 
                 className="bg-white/10 backdrop-blur-md border border-white/30 rounded-xl p-4 flex items-center justify-between group hover:bg-white/20 transition-all shadow-inner"
               >
-                <p className="text-white text-sm leading-snug pr-4 italic font-medium drop-shadow-sm">"{quote}"</p>
+                <p className="text-white text-sm leading-snug pr-4 italic font-medium drop-shadow-sm">&ldquo;{quote}&rdquo;</p>
                 <button
                   onClick={() => handleCopy(quote, idx)}
                   className="shrink-0 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white hover:text-slate-900 transition-all shadow-md"

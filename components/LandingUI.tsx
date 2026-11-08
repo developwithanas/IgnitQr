@@ -1,6 +1,5 @@
 "use client";
 
-import { SignInButton, SignUpButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { useState } from "react";
 import dynamic from "next/dynamic";
@@ -39,7 +38,7 @@ export default function LandingUI() {
       } else {
         setStatus("error");
       }
-    } catch (err) {
+    } catch {
       setStatus("error");
     }
   };
@@ -87,8 +86,8 @@ export default function LandingUI() {
 
 
         <div className="flex items-center gap-3">
-          <SignInButton mode="modal"><button className="px-6 py-2.5 text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-white transition">Login</button></SignInButton>
-          <SignUpButton mode="modal"><button className="bg-white text-black px-8 py-3 rounded-full text-xs font-black uppercase tracking-widest transition hover:scale-105 active:scale-95 shadow-xl">Sign Up</button></SignUpButton>
+          <Link href="/sign-in" className="px-6 py-2.5 text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-white transition">Login</Link>
+          <Link href="/sign-up" className="bg-white text-black px-8 py-3 rounded-full text-xs font-black uppercase tracking-widest transition hover:scale-105 active:scale-95 shadow-xl">Sign Up</Link>
         </div>
       </nav>
 
@@ -134,7 +133,7 @@ export default function LandingUI() {
             <h2 className="text-amber-500 text-[11px] font-black uppercase tracking-[0.4em]">The Workflow</h2>
             <h3 className="text-5xl md:text-7xl font-black tracking-tighter text-white leading-none">Simplicity <br /> in Every Scan.</h3>
           </div>
-          <p className="text-zinc-500 font-medium max-w-xs pb-2">We've automated the entire feedback loop so you can focus on what matters: your customers.</p>
+          <p className="text-zinc-500 font-medium max-w-xs pb-2">We&apos;ve automated the entire feedback loop so you can focus on what matters: your customers.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -144,7 +143,7 @@ export default function LandingUI() {
             { id: '03', title: 'AI Assist', desc: 'Our AI helps customers write glowing reviews.', icon: 'M9.663 17h4.673M12 3v1m6.364 1.636' },
             { id: '04', title: 'Analytics', desc: 'Track all customer trends in one dashboard.', icon: 'M9 19v-6a2 2 0 00-2-2H5' },
             { id: '05', title: 'Improve', desc: 'Use AI insights to get more 5-star ratings.', icon: 'M13 10V3L4 14h7v7l9-11h-7z' }
-          ].map((step, idx) => (
+          ].map((step) => (
             <div key={step.id} className="bg-[#111113] border border-white/5 p-8 rounded-[2.5rem] space-y-6 group hover:border-amber-500/30 transition-all duration-500">
               <div className="text-amber-500/20 font-black text-3xl group-hover:text-amber-500 transition-colors">{step.id}.</div>
               <h4 className="text-white font-black uppercase tracking-tighter text-lg leading-none">{step.title}</h4>
@@ -178,12 +177,12 @@ export default function LandingUI() {
               <li className="flex items-center gap-3"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Community Support</li>
               <li className="flex items-center gap-3"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Mobile App Access</li>
             </ul>
-            <button 
-              onClick={() => openPaymentModal("Starter", "Free")}
-              className="w-full py-4 rounded-full border border-white/10 text-white text-xs font-black uppercase tracking-widest hover:bg-white hover:text-black transition"
+            <Link
+              href="/sign-up"
+              className="block text-center w-full py-4 rounded-full border border-white/10 text-white text-xs font-black uppercase tracking-widest hover:bg-white hover:text-black transition"
             >
               Get Started
-            </button>
+            </Link>
           </div>
 
           {/* Pro */}
@@ -212,7 +211,7 @@ export default function LandingUI() {
           <div className="p-10 rounded-[3rem] border border-white/5 space-y-8 hover:bg-white/[0.02] transition">
             <div className="space-y-1">
               <h4 className="text-zinc-500 font-black uppercase tracking-widest text-[10px]">Enterprise</h4>
-              <h3 className="text-5xl font-black tracking-tighter text-white">₹4999</h3>
+              <h3 className="text-5xl font-black tracking-tighter text-white">₹4999<span className="text-zinc-500 text-xl">/mo</span></h3>
             </div>
             <ul className="space-y-4 text-zinc-500 text-sm font-medium">
               <li className="flex items-center gap-3"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Unlimited Locations</li>
@@ -225,7 +224,7 @@ export default function LandingUI() {
               onClick={() => openPaymentModal("Enterprise", "₹4999/mo")}
               className="w-full py-4 rounded-full border border-white/10 text-white text-xs font-black uppercase tracking-widest hover:bg-white hover:text-black transition"
             >
-              Contact Sales
+              Choose Enterprise
             </button>
 
           </div>
@@ -237,7 +236,7 @@ export default function LandingUI() {
         <div className="bg-[#111113] border border-white/5 rounded-[4rem] p-12 md:p-20 space-y-12">
           <div className="text-center space-y-4">
             <h2 className="text-amber-500 text-[11px] font-black uppercase tracking-[0.4em]">Get In Touch</h2>
-            <h3 className="text-4xl md:text-6xl font-black tracking-tighter text-white">Let's Ignite Your <br /> Business Together.</h3>
+            <h3 className="text-4xl md:text-6xl font-black tracking-tighter text-white">Let&apos;s Ignite Your <br /> Business Together.</h3>
           </div>
 
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -370,12 +369,14 @@ export default function LandingUI() {
 
 
       {/* Payment Modal */}
-      <PaymentModal 
-        isOpen={isPaymentModalOpen} 
-        onClose={() => setIsPaymentModalOpen(false)} 
-        planName={selectedPlan.name}
-        planPrice={selectedPlan.price}
-      />
+      {isPaymentModalOpen && (
+        <PaymentModal
+          isOpen
+          onClose={() => setIsPaymentModalOpen(false)}
+          planName={selectedPlan.name}
+          planPrice={selectedPlan.price}
+        />
+      )}
     </div>
   );
 }

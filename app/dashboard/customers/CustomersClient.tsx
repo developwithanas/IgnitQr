@@ -5,7 +5,7 @@ import Link from "next/link";
 import CustomerCharts from "./CustomerCharts";
 import AddCustomerModal from "@/components/AddCustomerModal";
 
-export default function CustomersClient({ initialFeedbacks, stats }: { initialFeedbacks: any[], stats: any }) {
+export default function CustomersClient({ initialFeedbacks }: { initialFeedbacks: any[], stats?: any }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [feedbacks, setFeedbacks] = useState(initialFeedbacks);
@@ -207,7 +207,7 @@ export default function CustomersClient({ initialFeedbacks, stats }: { initialFe
                     </div>
                   </div>
                   <p className="mt-4 text-zinc-400 text-xs leading-relaxed italic line-clamp-2 overflow-hidden">
-                    "{item.content || "No comment provided"}"
+                    {item.content ? `"${item.content}"` : "No comment provided"}
                   </p>
                   <div className="mt-4 pt-4 border-t border-white/5 flex justify-between items-center">
                     <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-lg border ${

@@ -1,14 +1,25 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
+import { checkRateLimit } from "@/lib/ratelimit";
+
+// "gemini-1.5-flash" was retired by Google. Override with GEMINI_MODEL if needed.
+const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-flash-lite-latest";
+const AI_TIMEOUT_MS = 10000;
 
 const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
 export async function POST(req: Request) {
   try {
-    const { businessName, rating } = await req.json();
+    if (!(await checkRateLimit(req, "quotes", 15, "10 m"))) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
 
-    if (!businessName || !rating) {
+    const body = await req.json();
+    const businessName = typeof body.businessName === "string" ? body.businessName.trim().slice(0, 100) : "";
+    const rating = Number(body.rating);
+
+    if (!businessName || !Number.isInteger(rating) || rating < 1 || rating > 5) {
       return NextResponse.json({ error: "Business name and rating are required" }, { status: 400 });
     }
 
@@ -23,7 +34,7 @@ export async function POST(req: Request) {
       });
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: MODEL_NAME }, { timeout: AI_TIMEOUT_MS });
 
     const styles = [
       "highly professional and elegant",

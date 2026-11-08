@@ -1,16 +1,25 @@
 import { NextResponse } from "next/server";
+import { checkRateLimit } from "@/lib/ratelimit";
 import { Resend } from "resend";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  if (!(await checkRateLimit(req, "contact", 5, "1 h"))) {
+    return NextResponse.json({ error: "Too many messages. Please try again later." }, { status: 429 });
+  }
+
   try {
     const resend = new Resend(process.env.RESEND_API_KEY);
 
     const { name, email, message } = await req.json();
 
-    if (!name || !email || !message) {
+    if (
+      typeof name !== "string" || typeof email !== "string" || typeof message !== "string" ||
+      !name.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !message.trim() ||
+      name.length > 100 || message.length > 5000
+    ) {
       return NextResponse.json(
         { error: "Missing fields" },
         { status: 400 }

@@ -1,31 +1,43 @@
 export const dynamic = "force-dynamic";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getSession } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/ratelimit";
+
+// Customers can only update their own feedback shortly after leaving it.
+const EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export async function POST(req: Request) {
   try {
-    const { rating, qrCodeId } = await req.json();
+    if (!(await checkRateLimit(req, "review", 20, "10 m"))) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
 
-    if (!rating || !qrCodeId) {
+    const body = await req.json();
+    const rating = Number(body.rating);
+    const qrCodeId = typeof body.qrCodeId === "string" ? body.qrCodeId : "";
+
+    if (!qrCodeId || !Number.isInteger(rating) || rating < 1 || rating > 5) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // First, increment scans on the QrCode
-    await prisma.qrCode.update({
-      where: { id: qrCodeId },
-      data: { scans: { increment: 1 } }
-    });
+    const qrCode = await prisma.qrCode.findUnique({ where: { id: qrCodeId }, select: { id: true } });
+    if (!qrCode) {
+      return NextResponse.json({ error: "QR code not found" }, { status: 404 });
+    }
 
-    // Create the feedback record
-    const newFeedback = await prisma.feedback.create({
-      data: {
-        rating,
-        qrCodeId,
-      },
-    });
+    // Count the scan and save the rating together
+    const [, newFeedback] = await prisma.$transaction([
+      prisma.qrCode.update({
+        where: { id: qrCodeId },
+        data: { scans: { increment: 1 } },
+      }),
+      prisma.feedback.create({
+        data: { rating, qrCodeId },
+      }),
+    ]);
 
-    return NextResponse.json({ success: true, feedback: newFeedback });
+    return NextResponse.json({ success: true, feedback: { id: newFeedback.id } });
   } catch (error) {
     console.error("CREATE_REVIEW_ERROR:", error);
     return NextResponse.json(
@@ -37,24 +49,45 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
+    if (!(await checkRateLimit(req, "review-update", 40, "10 m"))) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
+
     const { feedbackId, content, status, customerName } = await req.json();
 
-    if (!feedbackId) {
+    if (!feedbackId || typeof feedbackId !== "string") {
       return NextResponse.json({ error: "Missing feedbackId" }, { status: 400 });
     }
 
-    const updateData: any = {};
-    if (content) updateData.content = content;
-    if (status) updateData.aiContent = status;
-    if (customerName) updateData.customerName = customerName;
-    if (content && !status) updateData.aiContent = "Replied";
-
-    const updatedFeedback = await prisma.feedback.update({
+    const existing = await prisma.feedback.findUnique({
       where: { id: feedbackId },
-      data: updateData
+      select: { createdAt: true },
+    });
+    if (!existing) {
+      return NextResponse.json({ error: "Feedback not found" }, { status: 404 });
+    }
+    if (Date.now() - existing.createdAt.getTime() > EDIT_WINDOW_MS) {
+      return NextResponse.json({ error: "This feedback can no longer be edited" }, { status: 403 });
+    }
+
+    const updateData: { content?: string; aiContent?: string; customerName?: string } = {};
+    if (typeof content === "string" && content.trim()) updateData.content = content.trim().slice(0, 2000);
+    if (status === "Posted") updateData.aiContent = "Posted";
+    if (typeof customerName === "string" && customerName.trim()) {
+      updateData.customerName = customerName.trim().slice(0, 100);
+    }
+    if (updateData.content && !updateData.aiContent) updateData.aiContent = "Replied";
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
+    }
+
+    await prisma.feedback.update({
+      where: { id: feedbackId },
+      data: updateData,
     });
 
-    return NextResponse.json({ success: true, feedback: updatedFeedback });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error("UPDATE_REVIEW_ERROR:", error);
     return NextResponse.json(
@@ -66,7 +99,8 @@ export async function PATCH(req: Request) {
 
 export async function GET(req: Request) {
   try {
-    const { userId } = await auth();
+    const session = await getSession();
+    const userId = session?.userId;
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -9,24 +9,45 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model Business {
-  id          String   @id @default(cuid())
-  name        String
-  slug        String   @unique
-  googleLink  String
-  location    String?  @default("Main Branch")
-  userId      String
-
-  qrCodes     QrCode[]
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  password      String
+  plan          String    @default("Starter")
+  planExpiresAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  payments      Payment[]
 }
 
-model QrCode {
-  id         String @id @default(cuid())
-  businessId String
-  scans      Int    @default(0)
+model Payment {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  plan      String
+  amount    Int // in paise
+  currency  String   @default("INR")
+  coupon    String?
+  method    String // "razorpay" | "upi"
+  status    String // "created" | "paid" | "pending_review" | "failed"
+  orderId   String?  @unique
+  paymentId String?  @unique
+  reference String? // UPI transaction ID (UTR) for manual payments
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  business  Business   @relation(fields: [businessId], references: [id])
-  feedbacks Feedback[]
+  @@index([userId])
+}
+
+model Business {
+  id         String   @id @default(cuid())
+  userId     String
+  name       String
+  googleLink String
+  slug       String   @unique
+  location   String?  @default("Main Branch")
+  qrCodes    QrCode[]
 }
 
 model Feedback {
@@ -34,9 +55,17 @@ model Feedback {
   rating         Int
   content        String?
   aiContent      String?
+  qrCodeId       String
+  createdAt      DateTime @default(now())
   customerName   String?
   customerStatus String?  @default("Active")
-  qrCodeId       String
   qrCode         QrCode   @relation(fields: [qrCodeId], references: [id])
-  createdAt      DateTime @default(now())
+}
+
+model QrCode {
+  id         String     @id @default(cuid())
+  businessId String
+  scans      Int        @default(0)
+  feedbacks  Feedback[]
+  business   Business   @relation(fields: [businessId], references: [id])
 }

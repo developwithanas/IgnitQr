@@ -1,46 +1,76 @@
 export const dynamic = "force-dynamic";
-import { currentUser } from "@clerk/nextjs/server";
+import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import SettingsClient from "./SettingsClient";
+import { getEffectivePlan, PLANS } from "@/lib/plans";
 
 export default async function SettingsPage() {
-  const user = await currentUser();
-  
+  const session = await getSession();
+
+  const user = session?.userId
+    ? await prisma.user.findUnique({ where: { id: session.userId } })
+    : null;
+
   const business = await prisma.business.findFirst({
-    where: { userId: user?.id },
+    where: { userId: session?.userId },
     orderBy: { id: "desc" },
     include: {
       qrCodes: {
         include: {
-          feedbacks: true
-        }
-      }
-    }
+          feedbacks: true,
+        },
+      },
+    },
   });
 
-  // Extract clean data for client component
-  const userData = {
-    firstName: user?.firstName,
-    lastName: user?.lastName,
-    imageUrl: user?.imageUrl,
-    emailAddresses: user?.emailAddresses.map(e => ({ emailAddress: e.emailAddress }))
+  const { plan, expiresAt } = getEffectivePlan(user);
+  const [lastPaid, pendingPayment] = session?.userId
+    ? await Promise.all([
+        prisma.payment.findFirst({
+          where: { userId: session.userId, status: "paid" },
+          orderBy: { createdAt: "desc" },
+        }),
+        prisma.payment.findFirst({
+          where: { userId: session.userId, status: "pending_review" },
+          orderBy: { createdAt: "desc" },
+        }),
+      ])
+    : [null, null];
+
+  const billing = {
+    plan,
+    priceInr: PLANS[plan].priceInr,
+    expiresAt: expiresAt ? expiresAt.toISOString() : null,
+    paymentMethod: lastPaid ? (lastPaid.method === "upi" ? "UPI" : "Razorpay") : null,
+    pendingPlan: pendingPayment?.plan ?? null,
   };
 
-  const feedbacks = business?.qrCodes.flatMap(qr => qr.feedbacks) || [];
+  const userData = {
+    firstName: user?.name?.split(" ")[0] || session?.name || "User",
+    lastName: user?.name?.split(" ").slice(1).join(" ") || "",
+    imageUrl: "",
+    emailAddresses: [{ emailAddress: user?.email || session?.email || "" }],
+  };
 
-  const businessData = business ? {
-    id: business.id,
-    name: business.name,
-    customers: feedbacks.map(f => ({
-      name: f.customerName,
-      email: f.customerName ? `${f.customerName.toLowerCase().replace(/\s/g, '.')}@example.com` : 'N/A', // Placeholder email if not available
-      rating: f.rating,
-      status: f.customerStatus,
-      date: f.createdAt.toISOString()
-    }))
-  } : null;
+  const feedbacks = business?.qrCodes.flatMap((qr) => qr.feedbacks) || [];
 
-  return (
-    <SettingsClient user={userData} business={businessData} />
-  );
+  const businessData = business
+    ? {
+        id: business.id,
+        name: business.name,
+        googleLink: business.googleLink,
+        qrCount: business.qrCodes.length,
+        totalScans: business.qrCodes.reduce((sum, qr) => sum + qr.scans, 0),
+        reviewCount: feedbacks.length,
+        customers: feedbacks.map((f) => ({
+          name: f.customerName,
+          email: "N/A", // customer emails are not collected
+          rating: f.rating,
+          status: f.customerStatus,
+          date: f.createdAt.toISOString(),
+        })),
+      }
+    : null;
+
+  return <SettingsClient user={userData} business={businessData} billing={billing} />;
 }

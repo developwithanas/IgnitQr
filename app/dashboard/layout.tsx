@@ -1,11 +1,11 @@
 export const dynamic = "force-dynamic";
-import { UserButton } from "@clerk/nextjs";
-import { currentUser } from "@clerk/nextjs/server";
+import { getSession } from "@/lib/auth";
 import Sidebar from "@/components/Sidebar";
 import MobileNav from "@/components/MobileNav";
+import UserDropdown from "@/components/UserDropdown";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const user = await currentUser();
+  const session = await getSession();
 
   return (
     <div className="flex min-h-screen bg-[#0a0a0a] text-zinc-300">
@@ -23,11 +23,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </div>
           <div className="flex items-center gap-4 md:gap-6">
             <div className="text-zinc-300 text-sm font-black hidden sm:block">
-              Welcome, <span className="text-white">{user?.firstName || "User"}</span>!
+              Welcome, <span className="text-white">{session?.name || session?.email?.split("@")[0] || "User"}</span>!
             </div>
-            <UserButton appearance={{}} />          </div>
+            <UserDropdown user={session} />
+          </div>
         </header>
-
 
         {/* Page Content */}
         <div className="p-6 md:p-8 flex-1">

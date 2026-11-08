@@ -3,12 +3,23 @@
 import { useState } from "react";
 import Image from "next/image";
 import EditProfileModal from "@/components/EditProfileModal";
-import TeamModal from "@/components/TeamModal";
 import PlansModal from "@/components/PlansModal";
 
-export default function SettingsClient({ user, business }: { user: any, business: any }) {
+type Billing = {
+  plan: string;
+  priceInr: number;
+  expiresAt: string | null;
+  paymentMethod: string | null;
+  pendingPlan: string | null;
+};
+
+export default function SettingsClient({ user, business, billing }: { user: any, business: any, billing: Billing }) {
+  const planLabel = `${billing.plan} Plan`;
+  const priceLabel = billing.priceInr > 0 ? `₹${billing.priceInr}/mo` : "Free";
+  const expiryLabel = billing.expiresAt
+    ? new Date(billing.expiresAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })
+    : "—";
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const [isPlansModalOpen, setIsPlansModalOpen] = useState(false);
 
   const handleExportData = () => {
@@ -50,10 +61,15 @@ export default function SettingsClient({ user, business }: { user: any, business
   };
 
   const handleDeleteData = () => {
-    if (confirm("WARNING: This will permanently delete all customer and review data associated with your account. This action cannot be undone. Are you absolutely sure?")) {
-      alert("System initiated data purge. This would normally clear your database records.");
+    if (confirm("To permanently delete your account data, send us a request through the Contact form. Open it now?")) {
+      window.location.href = "/#contact";
     }
   };
+
+  const ownerName = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Account Owner";
+  const ownerEmail = user?.emailAddresses?.[0]?.emailAddress || "";
+  const avatarFor = (seed: string) =>
+    `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed || "User")}`;
 
   return (
     <div className="max-w-[1600px] mx-auto space-y-8 pb-10 animate-in fade-in duration-500">
@@ -66,16 +82,17 @@ export default function SettingsClient({ user, business }: { user: any, business
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-zinc-800">
               <Image 
-                src={user?.imageUrl || "https://api.dicebear.com/7.x/avataaars/svg?seed=Anas"} 
+                src={user?.imageUrl || avatarFor(user?.firstName)}
                 alt="Profile" 
+                unoptimized
                 width={64} 
                 height={64} 
               />
             </div>
             <div className="space-y-1">
-              <p className="text-xs text-zinc-500 font-bold uppercase">Profile Info: <span className="text-white">{user?.firstName || "Anas"} {user?.lastName || "Q."}</span></p>
-              <p className="text-xs text-zinc-500 font-bold uppercase">Email: <span className="text-white lowercase">{user?.emailAddresses[0]?.emailAddress || "anas.q@igniteqr.co"}</span></p>
-              <p className="text-xs text-zinc-500 font-bold uppercase">Company: <span className="text-white">{business?.name || "IgniteQR"}</span></p>
+              <p className="text-xs text-zinc-500 font-bold uppercase">Profile Info: <span className="text-white">{ownerName}</span></p>
+              <p className="text-xs text-zinc-500 font-bold uppercase">Email: <span className="text-white lowercase">{ownerEmail || "—"}</span></p>
+              <p className="text-xs text-zinc-500 font-bold uppercase">Company: <span className="text-white">{business?.name || "Not set up yet"}</span></p>
             </div>
           </div>
           <button 
@@ -86,50 +103,36 @@ export default function SettingsClient({ user, business }: { user: any, business
           </button>
           <div className="flex items-center gap-2 pt-2 border-t border-zinc-800/50">
             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-            <p className="text-xs font-bold text-zinc-400">Subscription: <span className="text-white">IgniteQR Pro Plan</span> <span className="text-green-500">(Active)</span></p>
+            <p className="text-xs font-bold text-zinc-400">Subscription: <span className="text-white">{planLabel}</span> <span className="text-green-500">(Active)</span>{billing.pendingPlan && <span className="text-amber-500"> · {billing.pendingPlan} payment under review</span>}</p>
           </div>
         </div>
 
         {/* Organization */}
-        <div 
-          onClick={() => setIsTeamModalOpen(true)}
-          className="bg-[#111111] border border-zinc-800 rounded-3xl p-6 space-y-6 cursor-pointer hover:border-zinc-700 transition group"
-        >
+        <div className="bg-[#111111] border border-zinc-800 rounded-3xl p-6 space-y-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-sm font-black uppercase text-zinc-500 tracking-widest group-hover:text-white transition">Organization</h2>
-            <div className="text-zinc-500 group-hover:text-white">
-               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-            </div>
+            <h2 className="text-sm font-black uppercase text-zinc-500 tracking-widest">Organization</h2>
+            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-amber-500">Coming soon</span>
           </div>
-          <p className="text-xs font-bold text-zinc-400">Team Management (5 members)</p>
+          <p className="text-xs font-bold text-zinc-400">Team Management (1 member)</p>
           <div className="space-y-3">
-            {[
-              { name: "David L.", role: "Admin", img: "https://i.pravatar.cc/150?u=david" },
-              { name: "Sara M.", role: "Member", img: "https://i.pravatar.cc/150?u=sara" },
-              { name: "Sana A.", role: "Member", img: "https://i.pravatar.cc/150?u=sana" }
-            ].map((member) => (
-              <div key={member.name} className="flex items-center justify-between p-2 bg-zinc-900/50 border border-zinc-800/50 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full overflow-hidden border border-zinc-700">
-                    <img src={member.img} alt={member.name} className="w-full h-full object-cover" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-white">{member.name}</p>
-                    <p className="text-[10px] font-medium text-zinc-500">{member.role}</p>
-                  </div>
+            <div className="flex items-center justify-between p-2 bg-zinc-900/50 border border-zinc-800/50 rounded-xl">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full overflow-hidden border border-zinc-700">
+                  <img src={user?.imageUrl || avatarFor(user?.firstName)} alt={ownerName} className="w-full h-full object-cover" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-white">{ownerName}</p>
+                  <p className="text-[10px] font-medium text-zinc-500">Owner{ownerEmail ? ` · ${ownerEmail}` : ""}</p>
                 </div>
               </div>
-            ))}
+            </div>
           </div>
-          <button 
-            onClick={(e) => {
-               e.stopPropagation();
-               setIsTeamModalOpen(true);
-            }}
-            className="w-full bg-zinc-900 border border-zinc-800 text-white font-bold py-2 rounded-xl hover:bg-zinc-800 transition text-sm flex items-center justify-center gap-2"
+          <button
+            disabled
+            className="w-full bg-zinc-900 border border-zinc-800 text-zinc-500 font-bold py-2 rounded-xl text-sm flex items-center justify-center gap-2 cursor-not-allowed"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
-            Add Member
+            Team invites coming soon
           </button>
         </div>
 
@@ -138,9 +141,11 @@ export default function SettingsClient({ user, business }: { user: any, business
           <h2 className="text-sm font-black uppercase text-zinc-500 tracking-widest">Integrations</h2>
           <div className="space-y-4">
             {[
-              { name: "Google Business Profile", platform: "Google", status: "Connected", color: "text-green-500" },
-              { name: "Shopify", platform: "Shopify", status: "Connected", color: "text-green-500" },
-              { name: "Salesforce", platform: "Salesforce", status: "Disconnected", color: "text-zinc-500" }
+              business?.googleLink
+                ? { name: "Google Review Link", status: "Connected", color: "text-green-500" }
+                : { name: "Google Review Link", status: "Not set", color: "text-amber-500" },
+              { name: "Shopify", status: "Coming soon", color: "text-zinc-500" },
+              { name: "Salesforce", status: "Coming soon", color: "text-zinc-500" }
             ].map((integ) => (
               <div key={integ.name} className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -155,8 +160,8 @@ export default function SettingsClient({ user, business }: { user: any, business
               </div>
             ))}
           </div>
-          <button className="w-full bg-zinc-900 border border-zinc-800 text-white font-bold py-2 rounded-xl hover:bg-zinc-800 transition text-sm">
-            Manage Integrations
+          <button disabled className="w-full bg-zinc-900 border border-zinc-800 text-zinc-500 font-bold py-2 rounded-xl text-sm cursor-not-allowed">
+            More integrations coming soon
           </button>
         </div>
 
@@ -167,25 +172,27 @@ export default function SettingsClient({ user, business }: { user: any, business
             <p className="text-xs font-bold text-zinc-400">Billing Summary</p>
             <div className="grid grid-cols-2 gap-y-2 pt-2 text-[11px] font-bold">
               <span className="text-zinc-500 uppercase">Current Plan:</span>
-              <span className="text-white">IgniteQR Pro Plan ($49/mo)</span>
+              <span className="text-white">{billing.plan} ({priceLabel})</span>
               <span className="text-zinc-500 uppercase">Payment Method:</span>
-              <span className="text-white">Visa ending 4321</span>
-              <span className="text-zinc-500 uppercase">Next Billing Date:</span>
-              <span className="text-white">June 8, 2026</span>
+              <span className="text-white">{billing.paymentMethod || "—"}</span>
+              <span className="text-zinc-500 uppercase">Valid Until:</span>
+              <span className="text-white">{expiryLabel}</span>
             </div>
           </div>
           
           <div className="space-y-2">
-            <p className="text-xs font-bold text-zinc-400">Usage Limits</p>
-            <div className="flex gap-1 h-8 items-end">
-               <div className="flex-1 bg-zinc-800 h-1/4 rounded-sm"></div>
-               <div className="flex-1 bg-zinc-800 h-2/4 rounded-sm"></div>
-               <div className="flex-1 bg-blue-600 h-full rounded-sm shadow-[0_0_10px_rgba(37,99,235,0.5)]"></div>
-               <div className="flex-1 bg-green-500 h-3/4 rounded-sm shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div>
-            </div>
-            <div className="flex justify-between text-[10px] font-black text-zinc-500 uppercase">
-               <span>API Calls (75% utilized)</span>
-               <span>Storage (20% utilized)</span>
+            <p className="text-xs font-bold text-zinc-400">Usage</p>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { label: "QR Codes", value: business?.qrCount ?? 0 },
+                { label: "Scans", value: business?.totalScans ?? 0 },
+                { label: "Reviews", value: business?.reviewCount ?? 0 },
+              ].map((stat) => (
+                <div key={stat.label} className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-2 text-center">
+                  <p className="text-lg font-black text-white">{stat.value}</p>
+                  <p className="text-[10px] font-black text-zinc-500 uppercase">{stat.label}</p>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -194,7 +201,7 @@ export default function SettingsClient({ user, business }: { user: any, business
                onClick={() => setIsPlansModalOpen(true)}
                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-xl transition text-sm shadow-lg shadow-blue-600/20"
              >
-                Update Billing
+                {billing.plan === "Starter" ? "Upgrade Plan" : "Renew / Change Plan"}
              </button>
              <button 
                onClick={() => setIsPlansModalOpen(true)}
@@ -225,7 +232,7 @@ export default function SettingsClient({ user, business }: { user: any, business
                 onClick={handleDeleteData}
                 className="bg-red-500/10 border border-red-500/20 px-3 py-1.5 rounded-lg text-red-500 text-[10px] font-black uppercase hover:bg-red-500/20 transition"
               >
-                Delete all data (Irreversible)
+                Request data deletion
               </button>
             </div>
           </div>
@@ -237,22 +244,26 @@ export default function SettingsClient({ user, business }: { user: any, business
           <p className="text-xs font-bold text-zinc-400">Security Settings</p>
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-               <span className="text-xs font-bold text-zinc-500 uppercase">2-Factor Authentication: <span className="text-green-500">Enabled</span></span>
-               <button className="text-blue-500 text-[11px] font-bold hover:underline">Edit</button>
+               <span className="text-xs font-bold text-zinc-500 uppercase">Password Login: <span className="text-green-500">Active</span></span>
+               <span className="text-zinc-600 text-[11px] font-bold">Encrypted</span>
             </div>
             <div className="flex justify-between items-center">
-               <span className="text-xs font-bold text-zinc-500 uppercase">API Keys: <span className="text-white">3 active keys</span></span>
-               <button className="text-blue-500 text-[11px] font-bold hover:underline">View Keys</button>
+               <span className="text-xs font-bold text-zinc-500 uppercase">2-Factor Authentication</span>
+               <span className="text-amber-500 text-[10px] font-black uppercase">Coming soon</span>
+            </div>
+            <div className="flex justify-between items-center">
+               <span className="text-xs font-bold text-zinc-500 uppercase">API Access</span>
+               <span className="text-zinc-500 text-[10px] font-black uppercase">Enterprise plan</span>
             </div>
           </div>
 
           <div className="pt-6 space-y-4">
             <h2 className="text-sm font-black uppercase text-zinc-500 tracking-widest">Notifications</h2>
-            <p className="text-xs font-bold text-zinc-400">Notification Preferences</p>
-            <div className="space-y-3">
+            <p className="text-xs font-bold text-zinc-400">Notification Preferences <span className="text-amber-500 text-[10px] font-black uppercase ml-1">Coming soon</span></p>
+            <div className="space-y-3 opacity-60">
                {["Email Digest (Daily)", "Critical Alerts (Push)", "New Review (Email)"].map(opt => (
-                 <label key={opt} className="flex items-center gap-3 cursor-pointer group">
-                    <input type="checkbox" className="w-4 h-4 rounded border-zinc-800 bg-zinc-900 text-blue-600 focus:ring-0 focus:ring-offset-0 transition" defaultChecked={opt.includes("Email")} />
+                 <label key={opt} className="flex items-center gap-3 cursor-not-allowed group">
+                    <input type="checkbox" disabled className="w-4 h-4 rounded border-zinc-800 bg-zinc-900 text-blue-600 focus:ring-0 focus:ring-offset-0 transition" />
                     <span className="text-xs font-bold text-zinc-400 group-hover:text-white transition">{opt}</span>
                  </label>
                ))}
@@ -264,19 +275,14 @@ export default function SettingsClient({ user, business }: { user: any, business
       <EditProfileModal 
         isOpen={isEditModalOpen} 
         onClose={() => setIsEditModalOpen(false)} 
-        user={user}
+        user={{ ...user, planLabel }}
         business={business}
-      />
-
-      <TeamModal 
-        isOpen={isTeamModalOpen} 
-        onClose={() => setIsTeamModalOpen(false)} 
-        businessName={business?.name || "IgniteQR"}
       />
 
       <PlansModal 
         isOpen={isPlansModalOpen} 
         onClose={() => setIsPlansModalOpen(false)} 
+        currentPlan={billing.plan}
       />
     </div>
   );

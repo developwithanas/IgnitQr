@@ -23,7 +23,7 @@ export default function FeedbackTable({ data }: { data: any[] }) {
                 </td>
                 <td className="p-6 font-medium text-white italic">{rev.customerName || "Anonymous"}</td>
                 <td className="p-6 text-slate-400 text-sm truncate max-w-xs group-hover:text-slate-200">
-                  "{rev.content || "No comment provided"}"
+                  {rev.content ? `"${rev.content}"` : "No comment provided"}
                 </td>
                 <td className="p-6 text-slate-500 text-xs font-bold">
                   {new Date(rev.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}

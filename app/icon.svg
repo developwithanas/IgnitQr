@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <!-- Royal Blue Squircle Background -->
+  <rect width="512" height="512" rx="140" fill="#1b6ffd"/>
+  <!-- Stylized White Lightning Bolt with rounded corners -->
+  <path d="M300 110 L170 280 H250 L212 402 L342 232 H262 Z" fill="white" stroke="white" stroke-width="24" stroke-linejoin="round" stroke-linecap="round"/>
+</svg>
