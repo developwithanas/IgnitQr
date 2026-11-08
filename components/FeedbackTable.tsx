@@ -31,10 +31,11 @@ export default function FeedbackTable({ data }: { data: any[] }) {
                 <td className="p-6 text-right">
                   <span className={`text-[9px] font-black uppercase px-3 py-1 rounded-full border ${
                     rev.aiContent === 'Posted' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
-                    rev.aiContent === 'Replied' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 
+                    rev.aiContent === 'Replied' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                    rev.aiContent === 'Private' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 
                     'bg-red-500/10 text-red-400 border-red-500/20'
                   }`}>
-                    {rev.aiContent === 'Posted' ? 'Posted' : rev.aiContent === 'Replied' ? 'Replied' : 'Pending'}
+                    {rev.aiContent === 'Posted' ? 'Posted' : rev.aiContent === 'Replied' ? 'Replied' : rev.aiContent === 'Private' ? 'Private Feedback' : 'Pending'}
                   </span>
                 </td>
               </tr>

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/ratelimit";
+import { getOwnerUsage } from "@/lib/usage";
 
 // Customers can only update their own feedback shortly after leaving it.
 const EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -21,9 +22,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const qrCode = await prisma.qrCode.findUnique({ where: { id: qrCodeId }, select: { id: true } });
+    const qrCode = await prisma.qrCode.findUnique({
+      where: { id: qrCodeId },
+      select: { id: true, business: { select: { userId: true } } },
+    });
     if (!qrCode) {
       return NextResponse.json({ error: "QR code not found" }, { status: 404 });
+    }
+
+    // Plan limit: monthly feedback for the business owner (Starter = 50/month)
+    const usage = await getOwnerUsage(qrCode.business.userId);
+    if (!usage.acceptingFeedback) {
+      return NextResponse.json({ code: "paused", error: "This business isn't collecting feedback right now." }, { status: 403 });
     }
 
     // Count the scan and save the rating together
@@ -73,6 +83,8 @@ export async function PATCH(req: Request) {
     const updateData: { content?: string; aiContent?: string; customerName?: string } = {};
     if (typeof content === "string" && content.trim()) updateData.content = content.trim().slice(0, 2000);
     if (status === "Posted") updateData.aiContent = "Posted";
+    // Private feedback from unhappy customers — goes to the owner only.
+    if (status === "Private") updateData.aiContent = "Private";
     if (typeof customerName === "string" && customerName.trim()) {
       updateData.customerName = customerName.trim().slice(0, 100);
     }

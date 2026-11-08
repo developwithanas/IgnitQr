@@ -105,6 +105,8 @@ export default async function ReviewsPage() {
                           ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
                           : item.aiContent === "Replied"
                           ? "bg-green-500/10 text-green-400 border-green-500/20"
+                          : item.aiContent === "Private"
+                          ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
                           : "bg-red-500/10 text-red-400 border-red-500/20"
                       }`}
                     >
@@ -112,6 +114,8 @@ export default async function ReviewsPage() {
                         ? "Posted"
                         : item.aiContent === "Replied"
                         ? "Replied"
+                        : item.aiContent === "Private"
+                        ? "Private Feedback"
                         : "Pending"}
                     </span>
                   </td>

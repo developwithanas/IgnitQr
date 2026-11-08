@@ -10,15 +10,74 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  name          String?
-  password      String
-  plan          String    @default("Starter")
-  planExpiresAt DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  payments      Payment[]
+  id              String    @id @default(cuid())
+  email           String    @unique
+  name            String?
+  password        String // "" for Google-only accounts (no password set)
+  emailVerifiedAt DateTime?
+  googleId        String?
+  plan            String    @default("Starter")
+  planExpiresAt   DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Admin control
+  role          String    @default("user") // "user" | "staff" | "admin"
+  status        String    @default("active") // "active" | "blocked"
+  blockedReason String?
+  blockedUntil  DateTime? // null = blocked until manually unblocked
+  tokenVersion  Int       @default(0) // bump to force logout everywhere
+
+  // Activity
+  lastLoginAt   DateTime?
+  loginCount    Int       @default(0)
+  lastSeenAt    DateTime?
+  activeSeconds Int       @default(0)
+
+  payments     Payment[]
+  loginEvents  LoginEvent[]
+  activityDays ActivityDay[]
+  resetTokens  PasswordResetToken[]
+  emailOtps    EmailOtp[]
+
+  @@index([googleId])
+}
+
+model LoginEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ip        String?
+  userAgent String?
+  device    String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model ActivityDay {
+  id      String @id @default(cuid())
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  day     String // YYYY-MM-DD (IST)
+  seconds Int    @default(0)
+
+  @@unique([userId, day])
+  @@index([day])
+}
+
+model AdminLog {
+  id           String   @id @default(cuid())
+  adminId      String
+  adminEmail   String
+  action       String
+  targetUserId String?
+  targetEmail  String?
+  details      String?
+  createdAt    DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([targetUserId])
 }
 
 model Payment {
@@ -68,4 +127,29 @@ model QrCode {
   scans      Int        @default(0)
   feedbacks  Feedback[]
   business   Business   @relation(fields: [businessId], references: [id])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique // sha256 of the token; the raw token is only in the link
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model EmailOtp {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int       @default(0)
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt])
 }

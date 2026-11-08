@@ -41,7 +41,13 @@ export default async function SettingsPage() {
     plan,
     priceInr: PLANS[plan].priceInr,
     expiresAt: expiresAt ? expiresAt.toISOString() : null,
-    paymentMethod: lastPaid ? (lastPaid.method === "upi" ? "UPI" : "Razorpay") : null,
+    paymentMethod: lastPaid
+      ? lastPaid.method === "upi"
+        ? "UPI"
+        : lastPaid.method === "admin_grant"
+          ? "Complimentary"
+          : "Razorpay"
+      : null,
     pendingPlan: pendingPayment?.plan ?? null,
   };
 

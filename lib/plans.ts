@@ -6,21 +6,32 @@ export type PlanName = "Starter" | PaidPlanName;
 
 export const PLAN_DURATION_DAYS = 30;
 
+/**
+ * What each plan actually allows — enforced on the server.
+ * null = unlimited. Change numbers here and the whole app follows.
+ */
+export const PLAN_LIMITS: Record<PlanName, { locations: number | null; monthlyFeedback: number | null; aiReviews: boolean }> = {
+  Starter: { locations: 1, monthlyFeedback: 50, aiReviews: false },
+  Professional: { locations: 3, monthlyFeedback: null, aiReviews: true },
+  Enterprise: { locations: null, monthlyFeedback: null, aiReviews: true },
+};
+
+// Only list features that really exist in the app.
 export const PLANS: Record<PlanName, { label: string; priceInr: number; features: string[] }> = {
   Starter: {
     label: "Starter",
     priceInr: 0,
-    features: ["5 QR Codes", "50 Scans / mo", "Basic Analytics", "Community Support"],
+    features: ["1 Business Location", "50 Customer Feedbacks / mo", "Standard Review Suggestions", "Basic Analytics", "Email Support"],
   },
   Professional: {
     label: "Professional",
-    priceInr: 1499,
-    features: ["Unlimited QR Codes", "AI Review Engine", "Custom Branding", "Advanced Dashboard", "Priority Support"],
+    priceInr: 999,
+    features: ["Up to 3 Business Locations", "Unlimited Customer Feedback", "AI Review Engine", "Advanced Dashboard & CSV Export", "Priority Support"],
   },
   Enterprise: {
     label: "Enterprise",
-    priceInr: 4999,
-    features: ["Unlimited Locations", "Dedicated Manager", "API Access", "SLA Guarantee", "Custom Integrations"],
+    priceInr: 1999,
+    features: ["Unlimited Business Locations", "Unlimited Customer Feedback", "AI Review Engine", "Advanced Dashboard & CSV Export", "Dedicated Account Manager"],
   },
 };
 
@@ -101,4 +112,9 @@ export function getEffectivePlan(user: { plan?: string | null; planExpiresAt?: D
 export function nextExpiry(currentExpiry: Date | null | undefined): Date {
   const start = currentExpiry && currentExpiry.getTime() > Date.now() ? currentExpiry : new Date();
   return new Date(start.getTime() + PLAN_DURATION_DAYS * 24 * 60 * 60 * 1000);
+}
+
+/** Whole days left until a plan expires (null when there's no expiry). */
+export function planDaysLeft(expiresAt: Date | null): number | null {
+  return expiresAt ? Math.ceil((expiresAt.getTime() - Date.now()) / 86400000) : null;
 }

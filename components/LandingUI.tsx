@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import dynamic from "next/dynamic";
+import { PLANS } from "@/lib/plans";
+import RupeeIcon from "./RupeeIcon";
 
 const PaymentModal = dynamic(() => import("./PaymentModal"), { ssr: false });
 
@@ -171,11 +173,9 @@ export default function LandingUI() {
               <h3 className="text-5xl font-black tracking-tighter text-white">Free</h3>
             </div>
             <ul className="space-y-4 text-zinc-500 text-sm font-medium">
-              <li className="flex items-center gap-3"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> 5 QR Codes</li>
-              <li className="flex items-center gap-3"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> 50 Scans / mo</li>
-              <li className="flex items-center gap-3"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Basic Analytics</li>
-              <li className="flex items-center gap-3"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Community Support</li>
-              <li className="flex items-center gap-3"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Mobile App Access</li>
+              {PLANS.Starter.features.map((f) => (
+                <li key={f} className="flex items-center gap-3"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> {f}</li>
+              ))}
             </ul>
             <Link
               href="/sign-up"
@@ -190,19 +190,18 @@ export default function LandingUI() {
             <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-amber-500 text-black px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">Most Popular</div>
             <div className="space-y-1">
               <h4 className="text-zinc-500 font-black uppercase tracking-widest text-[10px]">Professional</h4>
-              <h3 className="text-6xl font-black tracking-tighter">₹1499<span className="text-zinc-400 text-xl">/mo</span></h3>
+              <h3 className="text-6xl font-black tracking-tighter">₹{PLANS.Professional.priceInr}<span className="text-zinc-400 text-xl">/mo</span></h3>
             </div>
             <ul className="space-y-4 text-zinc-900 text-sm font-bold">
-              <li className="flex items-center gap-3"><svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg> Unlimited QR Codes</li>
-              <li className="flex items-center gap-3"><svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg> AI Review Engine</li>
-              <li className="flex items-center gap-3"><svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg> Custom Branding</li>
-              <li className="flex items-center gap-3"><svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg> Advanced Dashboard</li>
-              <li className="flex items-center gap-3"><svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg> Priority Support</li>
+              {PLANS.Professional.features.map((f) => (
+                <li key={f} className="flex items-center gap-3"><svg className="w-5 h-5 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg> {f}</li>
+              ))}
             </ul>
             <button 
-              onClick={() => openPaymentModal("Professional", "₹1499/mo")}
-              className="w-full py-5 rounded-full bg-black text-white text-xs font-black uppercase tracking-widest hover:bg-zinc-800 transition shadow-xl"
+              onClick={() => openPaymentModal("Professional", `₹${PLANS.Professional.priceInr}/mo`)}
+              className="w-full py-5 rounded-full bg-black text-white text-xs font-black uppercase tracking-widest hover:bg-zinc-800 transition shadow-xl flex items-center justify-center gap-2"
             >
+              <RupeeIcon className="w-4 h-4 text-amber-400" />
               Ignite Now
             </button>
           </div>
@@ -211,19 +210,18 @@ export default function LandingUI() {
           <div className="p-10 rounded-[3rem] border border-white/5 space-y-8 hover:bg-white/[0.02] transition">
             <div className="space-y-1">
               <h4 className="text-zinc-500 font-black uppercase tracking-widest text-[10px]">Enterprise</h4>
-              <h3 className="text-5xl font-black tracking-tighter text-white">₹4999<span className="text-zinc-500 text-xl">/mo</span></h3>
+              <h3 className="text-5xl font-black tracking-tighter text-white">₹{PLANS.Enterprise.priceInr}<span className="text-zinc-500 text-xl">/mo</span></h3>
             </div>
             <ul className="space-y-4 text-zinc-500 text-sm font-medium">
-              <li className="flex items-center gap-3"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Unlimited Locations</li>
-              <li className="flex items-center gap-3"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Dedicated Manager</li>
-              <li className="flex items-center gap-3"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> API Access</li>
-              <li className="flex items-center gap-3"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> SLA Guarantee</li>
-              <li className="flex items-center gap-3"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Custom Integrations</li>
+              {PLANS.Enterprise.features.map((f) => (
+                <li key={f} className="flex items-center gap-3"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> {f}</li>
+              ))}
             </ul>
             <button 
-              onClick={() => openPaymentModal("Enterprise", "₹4999/mo")}
-              className="w-full py-4 rounded-full border border-white/10 text-white text-xs font-black uppercase tracking-widest hover:bg-white hover:text-black transition"
+              onClick={() => openPaymentModal("Enterprise", `₹${PLANS.Enterprise.priceInr}/mo`)}
+              className="w-full py-4 rounded-full border border-white/10 text-white text-xs font-black uppercase tracking-widest hover:bg-white hover:text-black transition flex items-center justify-center gap-2"
             >
+              <RupeeIcon className="w-4 h-4" />
               Choose Enterprise
             </button>
 
@@ -346,9 +344,10 @@ export default function LandingUI() {
             <div className="space-y-6">
               <h4 className="text-white text-[10px] font-black uppercase tracking-[0.3em]">Legal</h4>
               <ul className="space-y-4 text-zinc-500 text-[11px] font-bold uppercase tracking-widest">
-                <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Terms of Use</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Cookie Policy</a></li>
+                <li><Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
+                <li><Link href="/terms" className="hover:text-white transition-colors">Terms &amp; Conditions</Link></li>
+                <li><Link href="/refund-policy" className="hover:text-white transition-colors">Refund &amp; Cancellation</Link></li>
+                <li><Link href="/contact" className="hover:text-white transition-colors">Contact Us</Link></li>
               </ul>
             </div>
           </div>
@@ -373,6 +372,7 @@ export default function LandingUI() {
         <PaymentModal
           isOpen
           onClose={() => setIsPaymentModalOpen(false)}
+          isLoggedIn={false}
           planName={selectedPlan.name}
           planPrice={selectedPlan.price}
         />

@@ -1,13 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import GoogleButton from "@/components/GoogleButton";
+import { useSearchParams } from "next/navigation";
+import { AuthSwitchLink, CheckoutNotice } from "@/components/AuthExtras";
 
 export default function SignUpPage() {
-  const router = useRouter();
+  return (
+    <Suspense fallback={null}>
+      <SignUpForm />
+    </Suspense>
+  );
+}
+
+function SignUpForm() {
+  const searchParams = useSearchParams();
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  // Pre-filled when coming from "No account exists — Create Account".
+  const [email, setEmail] = useState(searchParams.get("email") || "");
+  const [errorCode, setErrorCode] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
@@ -16,6 +28,7 @@ export default function SignUpPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setErrorCode("");
 
     if (password !== confirmPassword) {
       setError("Passwords do not match");
@@ -39,14 +52,17 @@ export default function SignUpPage() {
       const data = await res.json();
 
       if (!res.ok) {
+        setErrorCode(data.code || "");
         throw new Error(data.error || "Failed to sign up");
       }
 
       // Return to the page that sent the user here (only same-site paths).
       const redirect = new URLSearchParams(window.location.search).get("redirect");
       const safeRedirect = redirect && redirect.startsWith("/") && !redirect.startsWith("//") ? redirect : "/dashboard";
-      router.push(safeRedirect);
-      router.refresh();
+      // New or unverified accounts confirm their email first (when verification is on).
+      // Full page load (not push+refresh) so the new login cookie is used and the
+      // ?checkout=… in the target URL is never lost.
+      window.location.assign(data.needsVerification ? `/verify-email?redirect=${encodeURIComponent(safeRedirect)}` : safeRedirect);
     } catch (err: any) {
       setError(err.message || "Something went wrong");
     } finally {
@@ -83,8 +99,17 @@ export default function SignUpPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span>{error}</span>
+            {errorCode === "account_exists" && (
+              <span className="ml-auto shrink-0">
+                <AuthSwitchLink to="/sign-in">Sign In →</AuthSwitchLink>
+              </span>
+            )}
           </div>
         )}
+
+        <CheckoutNotice mode="sign-up" />
+
+        <GoogleButton label={"Sign up with Google"} />
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -162,11 +187,15 @@ export default function SignUpPage() {
           </button>
         </form>
 
+        <p className="mt-4 text-center text-[11px] text-zinc-500">
+          By creating an account you agree to our{" "}
+          <Link href="/terms" className="underline hover:text-zinc-300">Terms</Link> and{" "}
+          <Link href="/privacy" className="underline hover:text-zinc-300">Privacy Policy</Link>.
+        </p>
+
         <div className="mt-6 text-center text-sm text-zinc-400">
           Already have an account?{" "}
-          <Link href="/sign-in" className="text-blue-400 hover:text-blue-300 font-semibold transition">
-            Sign In
-          </Link>
+          <AuthSwitchLink to="/sign-in">Sign In</AuthSwitchLink>
         </div>
       </div>
     </div>

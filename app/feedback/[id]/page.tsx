@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
+import { getOwnerUsage } from "@/lib/usage";
 import FeedbackClient from "./FeedbackClient";
+
+export const dynamic = "force-dynamic";
 
 export default async function FeedbackPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -15,12 +18,16 @@ export default async function FeedbackPage({ params }: { params: Promise<{ id: s
     notFound();
   }
 
+  // Free plan monthly limit — when used up, customers are sent straight to Google.
+  const usage = await getOwnerUsage(qrCode.business.userId);
+
   return (
-    <FeedbackClient 
+    <FeedbackClient
       qrCodeId={qrCode.id}
-      businessName={qrCode.business.name} 
+      businessName={qrCode.business.name}
       location={qrCode.business.location || "Main Branch"}
-      googleLink={qrCode.business.googleLink} 
+      googleLink={qrCode.business.googleLink}
+      accepting={usage.acceptingFeedback}
     />
   );
 }

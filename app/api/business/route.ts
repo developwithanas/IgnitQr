@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { getOwnerUsage, locationLimitMessage } from "@/lib/usage";
 
 export async function POST(req: Request) {
   try {
@@ -13,6 +14,12 @@ export async function POST(req: Request) {
         { error: "Unauthorized" },
         { status: 401 }
       );
+    }
+
+    // Plan limit: number of business locations
+    const usage = await getOwnerUsage(userId);
+    if (!usage.canAddLocation) {
+      return NextResponse.json({ code: "limit_reached", error: locationLimitMessage(usage) }, { status: 403 });
     }
 
     const body = await req.json();

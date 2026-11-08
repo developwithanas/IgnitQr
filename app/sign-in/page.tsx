@@ -1,19 +1,56 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import GoogleButton from "@/components/GoogleButton";
+import { AuthSwitchLink, CheckoutNotice } from "@/components/AuthExtras";
+import { useSearchParams } from "next/navigation";
+
+/** Shows why the user was signed out (blocked account or expired session). */
+function SignedOutNotice() {
+  const reason = useSearchParams().get("reason");
+  const notices: Record<string, { tone: string; text: string }> = {
+    blocked: {
+      tone: "bg-red-500/10 border-red-500/30 text-red-400",
+      text: "Your account has been blocked. Please contact support if you think this is a mistake.",
+    },
+    expired: {
+      tone: "bg-amber-500/10 border-amber-500/30 text-amber-400",
+      text: "Your session has ended. Please sign in again.",
+    },
+    reset: {
+      tone: "bg-green-500/10 border-green-500/30 text-green-400",
+      text: "Password updated! Sign in with your new password.",
+    },
+    google_cancelled: {
+      tone: "bg-amber-500/10 border-amber-500/30 text-amber-400",
+      text: "Google sign-in was cancelled.",
+    },
+    google_failed: {
+      tone: "bg-red-500/10 border-red-500/30 text-red-400",
+      text: "Google sign-in didn't work. Please try again or use your email and password.",
+    },
+    google_unavailable: {
+      tone: "bg-amber-500/10 border-amber-500/30 text-amber-400",
+      text: "Google sign-in isn't set up yet. Please use your email and password.",
+    },
+  };
+  const notice = reason ? notices[reason] : undefined;
+  if (!notice) return null;
+  return <div className={`mb-5 p-3 rounded-lg border text-sm ${notice.tone}`}>{notice.text}</div>;
+}
 
 export default function SignInPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [errorCode, setErrorCode] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setErrorCode("");
     setLoading(true);
 
     try {
@@ -26,14 +63,17 @@ export default function SignInPage() {
       const data = await res.json();
 
       if (!res.ok) {
+        setErrorCode(data.code || "");
         throw new Error(data.error || "Invalid credentials");
       }
 
       // Return to the page that sent the user here (only same-site paths).
       const redirect = new URLSearchParams(window.location.search).get("redirect");
       const safeRedirect = redirect && redirect.startsWith("/") && !redirect.startsWith("//") ? redirect : "/dashboard";
-      router.push(safeRedirect);
-      router.refresh();
+      // New or unverified accounts confirm their email first (when verification is on).
+      // Full page load (not push+refresh) so the new login cookie is used and the
+      // ?checkout=… in the target URL is never lost.
+      window.location.assign(data.needsVerification ? `/verify-email?redirect=${encodeURIComponent(safeRedirect)}` : safeRedirect);
     } catch (err: any) {
       setError(err.message || "Failed to sign in");
     } finally {
@@ -64,14 +104,44 @@ export default function SignInPage() {
           <p className="text-zinc-400 text-sm mt-1">Sign in to your IgniteQR dashboard</p>
         </div>
 
+        <Suspense fallback={null}>
+          <CheckoutNotice mode="sign-in" />
+        </Suspense>
+
+        {!error && (
+          <Suspense fallback={null}>
+            <SignedOutNotice />
+          </Suspense>
+        )}
+
         {error && (
-          <div className="mb-5 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm flex items-center gap-2">
-            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span>{error}</span>
+          <div
+            className={`mb-5 p-3 rounded-lg border text-sm space-y-2 ${
+              errorCode === "no_account"
+                ? "bg-amber-500/10 border-amber-500/30 text-amber-300"
+                : "bg-red-500/10 border-red-500/30 text-red-400"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>{error}</span>
+            </div>
+            {errorCode === "no_account" && (
+              <Suspense fallback={null}>
+                <AuthSwitchLink to="/sign-up" email={email}>Create an account with this email →</AuthSwitchLink>
+              </Suspense>
+            )}
+            {errorCode === "wrong_password" && (
+              <Link href="/forgot-password" className="inline-block text-blue-400 hover:text-blue-300 font-semibold">
+                Forgot your password? Reset it →
+              </Link>
+            )}
           </div>
         )}
+
+        <GoogleButton label={"Continue with Google"} />
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -89,9 +159,14 @@ export default function SignInPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
-              Password
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider">
+                Password
+              </label>
+              <Link href="/forgot-password" className="text-xs font-semibold text-blue-400 hover:text-blue-300 transition">
+                Forgot password?
+              </Link>
+            </div>
             <input
               type="password"
               required
@@ -123,9 +198,9 @@ export default function SignInPage() {
 
         <div className="mt-6 text-center text-sm text-zinc-400">
           Don&apos;t have an account?{" "}
-          <Link href="/sign-up" className="text-blue-400 hover:text-blue-300 font-semibold transition">
-            Create an Account
-          </Link>
+          <Suspense fallback={<Link href="/sign-up" className="text-blue-400 font-semibold">Create an Account</Link>}>
+            <AuthSwitchLink to="/sign-up">Create an Account</AuthSwitchLink>
+          </Suspense>
         </div>
       </div>
     </div>
