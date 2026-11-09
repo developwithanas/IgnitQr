@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { AUTH_COOKIE_NAME } from "@/lib/auth";
+import { getBaseUrl } from "@/lib/site-url";
 
 function clearCookie(response: NextResponse) {
   response.cookies.set({
@@ -22,7 +23,7 @@ export async function POST() {
 // Used when a session is no longer valid (blocked user, forced logout).
 export async function GET(req: Request) {
   const reason = new URL(req.url).searchParams.get("reason");
-  const target = new URL("/sign-in", req.url);
+  const target = new URL("/sign-in", getBaseUrl(req));
   if (reason === "blocked" || reason === "expired") target.searchParams.set("reason", reason);
   return clearCookie(NextResponse.redirect(target));
 }

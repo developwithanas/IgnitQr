@@ -1,12 +1,23 @@
 /**
  * Base URL for links we email or redirect to (reset links, Google callback).
- * Production uses NEXT_PUBLIC_SITE_URL so a forged Host header can't change it;
- * local testing on localhost uses the request's own origin.
+ *
+ * Behind Render's proxy, req.url points at the internal server
+ * (http://localhost:10000), so the public host comes from the forwarded
+ * headers. Production prefers NEXT_PUBLIC_SITE_URL so a forged Host header
+ * can't change emailed links; local testing uses the request's own host.
  */
 export function getBaseUrl(req: Request): string {
   const requestUrl = new URL(req.url);
-  const isLocal = requestUrl.hostname === "localhost" || requestUrl.hostname === "127.0.0.1";
-  const base = isLocal ? requestUrl.origin : process.env.NEXT_PUBLIC_SITE_URL || requestUrl.origin;
+  const host = (req.headers.get("x-forwarded-host") || req.headers.get("host") || requestUrl.host).split(",")[0].trim();
+  const proto = (req.headers.get("x-forwarded-proto") || requestUrl.protocol.replace(":", "")).split(",")[0].trim();
+  const publicOrigin = `${proto}://${host}`;
+
+  const hostname = host.split(":")[0];
+  const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
+  if (isLocal) return publicOrigin.replace(/\/$/, "");
+
+  const configured = process.env.NEXT_PUBLIC_SITE_URL;
+  const base = configured && !configured.includes("your-app") ? configured : publicOrigin;
   return base.replace(/\/$/, "");
 }
 

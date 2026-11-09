@@ -15,7 +15,7 @@ jobs:
     steps:
       - name: Ping /api/ping
         env:
-          SITE_URL: ${{ vars.SITE_URL || 'https://igniteqr.onrender.com' }}
+          SITE_URL: ${{ vars.SITE_URL || 'https://ignitqr-kh3n.onrender.com' }}
         run: |
           echo "Pinging $SITE_URL/api/ping"
           curl --fail --silent --show-error --max-time 90 --retry 2 --retry-delay 10 "$SITE_URL/api/ping"
