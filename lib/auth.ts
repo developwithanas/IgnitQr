@@ -6,10 +6,18 @@ import { prisma } from "@/lib/prisma";
 
 export const AUTH_COOKIE_NAME = "insightqr_token";
 
-const JWT_SECRET =
-  process.env.JWT_SECRET ||
-  process.env.CLERK_SECRET_KEY ||
-  "insightqr-default-secure-secret-key-32bytes!";
+const DEV_FALLBACK_SECRET = "insightqr-default-secure-secret-key-32bytes!";
+
+// Never sign or accept tokens with the public fallback key in production:
+// anyone could forge an admin session with it.
+function jwtSecret(): string {
+  const secret = process.env.JWT_SECRET || process.env.CLERK_SECRET_KEY;
+  if (secret) return secret;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("JWT_SECRET is not set. Add it to the server environment.");
+  }
+  return DEV_FALLBACK_SECRET;
+}
 
 export function hashPassword(password: string): string {
   const salt = crypto.randomBytes(16).toString("hex");
@@ -106,7 +114,7 @@ export function signToken(payload: Omit<JWTPayload, "exp">): string {
   const encodedPayload = base64UrlEncode(JSON.stringify(fullPayload));
 
   const signature = crypto
-    .createHmac("sha256", JWT_SECRET)
+    .createHmac("sha256", jwtSecret())
     .update(`${encodedHeader}.${encodedPayload}`)
     .digest("base64")
     .replace(/=/g, "")
@@ -124,7 +132,7 @@ export function verifyToken(token: string): JWTPayload | null {
     const [encodedHeader, encodedPayload, signature] = parts;
 
     const expectedSignature = crypto
-      .createHmac("sha256", JWT_SECRET)
+      .createHmac("sha256", jwtSecret())
       .update(`${encodedHeader}.${encodedPayload}`)
       .digest("base64")
       .replace(/=/g, "")
