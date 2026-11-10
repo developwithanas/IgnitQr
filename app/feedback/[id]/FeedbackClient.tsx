@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 interface FeedbackClientProps {
   qrCodeId: string;
@@ -28,6 +28,8 @@ export default function FeedbackClient({ qrCodeId, businessName, location, googl
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [thanksText, setThanksText] = useState("");
+  // Ignore draft responses that arrive after the customer already picked another star.
+  const draftRequest = useRef(0);
 
   const saveUpdate = (payload: Record<string, string>) =>
     feedbackId
@@ -40,7 +42,39 @@ export default function FeedbackClient({ qrCodeId, businessName, location, googl
         }).catch(() => null)
       : Promise.resolve(null);
 
+  const loadDrafts = async (selected: number, replaceText: boolean) => {
+    const request = ++draftRequest.current;
+    setLoadingSuggestions(true);
+    try {
+      const res = await fetch("/api/generate-quotes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ qrCodeId, rating: selected }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (request !== draftRequest.current) return;
+      const list: string[] = Array.isArray(data.quotes) ? data.quotes : [];
+      setSuggestions(list);
+      if (replaceText) setReviewText(list[0] ?? "");
+    } catch {
+      // No drafts: the customer can still type their own review.
+    } finally {
+      if (request === draftRequest.current) setLoadingSuggestions(false);
+    }
+  };
+
+  // Changing the stars after the first tap: update the saved rating and refresh the drafts.
+  const changeRating = (selected: number) => {
+    if (selected === rating) return;
+    // Keep text the customer wrote themselves; replace it only if it is still one of our drafts.
+    const ownText = reviewText.trim() !== "" && !suggestions.includes(reviewText);
+    setRating(selected);
+    saveUpdate({ rating: String(selected) });
+    loadDrafts(selected, !ownText);
+  };
+
   const handleRatingSelect = async (selected: number) => {
+    if (step === "review") return changeRating(selected);
     setRating(selected);
     setStep("saving");
 
@@ -62,22 +96,7 @@ export default function FeedbackClient({ qrCodeId, businessName, location, googl
 
     // Every rating gets editable drafts in a tone that matches the stars.
     setStep("review");
-    setLoadingSuggestions(true);
-    try {
-      const res = await fetch("/api/generate-quotes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ qrCodeId, rating: selected }),
-      });
-      const data = await res.json().catch(() => ({}));
-      const list: string[] = Array.isArray(data.quotes) ? data.quotes : [];
-      setSuggestions(list);
-      if (list[0]) setReviewText(list[0]);
-    } catch {
-      // No drafts: the customer can still type their own review.
-    } finally {
-      setLoadingSuggestions(false);
-    }
+    await loadDrafts(selected, true);
   };
 
   const copyAndPost = async () => {
@@ -194,15 +213,16 @@ export default function FeedbackClient({ qrCodeId, businessName, location, googl
             <div className="flex gap-2 justify-center mb-8">
               {[1, 2, 3, 4, 5].map((star) => {
                 const isSelected = (hoveredRating || rating) >= star;
+                const canTap = step === "rating" || step === "review";
                 return (
                   <button
                     key={star}
-                    onMouseEnter={() => step === "rating" && setHoveredRating(star)}
+                    onMouseEnter={() => canTap && setHoveredRating(star)}
                     onMouseLeave={() => setHoveredRating(0)}
                     onClick={() => handleRatingSelect(star)}
-                    disabled={step !== "rating"}
+                    disabled={!canTap}
                     aria-label={`${star} star${star > 1 ? "s" : ""}`}
-                    className={`transition-all duration-300 transform ${step === "rating" ? "hover:scale-110 active:scale-95" : ""}`}
+                    className={`transition-all duration-300 transform ${canTap ? "hover:scale-110 active:scale-95" : ""}`}
                   >
                     <svg
                       className={`w-12 h-12 transition-all duration-300 drop-shadow-lg ${

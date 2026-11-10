@@ -63,7 +63,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
 
-    const { feedbackId, content, status, customerName } = await req.json();
+    const { feedbackId, content, status, customerName, rating } = await req.json();
 
     if (!feedbackId || typeof feedbackId !== "string") {
       return NextResponse.json({ error: "Missing feedbackId" }, { status: 400 });
@@ -80,7 +80,12 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "This feedback can no longer be edited" }, { status: 403 });
     }
 
-    const updateData: { content?: string; aiContent?: string; customerName?: string } = {};
+    const updateData: { content?: string; aiContent?: string; customerName?: string; rating?: number } = {};
+    // The customer may change their star rating within the edit window.
+    const newRating = Number(rating);
+    if (rating !== undefined && Number.isInteger(newRating) && newRating >= 1 && newRating <= 5) {
+      updateData.rating = newRating;
+    }
     if (typeof content === "string" && content.trim()) updateData.content = content.trim().slice(0, 2000);
     if (status === "Posted") updateData.aiContent = "Posted";
     // Private feedback from unhappy customers — goes to the owner only.
