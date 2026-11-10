@@ -11,7 +11,7 @@ interface FeedbackClientProps {
   accepting: boolean;
 }
 
-type Step = "rating" | "saving" | "happy" | "unhappy" | "thanks" | "paused";
+type Step = "rating" | "saving" | "review" | "thanks" | "paused";
 
 const STAR_PATH =
   "M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z";
@@ -60,24 +60,23 @@ export default function FeedbackClient({ qrCodeId, businessName, location, googl
       // Still let the customer continue even if saving failed.
     }
 
-    if (selected >= 4) {
-      setStep("happy");
-      setLoadingSuggestions(true);
-      try {
-        const res = await fetch("/api/generate-quotes", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ qrCodeId, rating: selected }),
-        });
-        const data = await res.json().catch(() => ({}));
-        const list: string[] = Array.isArray(data.quotes) ? data.quotes : [];
-        setSuggestions(list);
-        if (list[0]) setReviewText(list[0]);
-      } finally {
-        setLoadingSuggestions(false);
-      }
-    } else {
-      setStep("unhappy");
+    // Every rating gets editable drafts in a tone that matches the stars.
+    setStep("review");
+    setLoadingSuggestions(true);
+    try {
+      const res = await fetch("/api/generate-quotes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ qrCodeId, rating: selected }),
+      });
+      const data = await res.json().catch(() => ({}));
+      const list: string[] = Array.isArray(data.quotes) ? data.quotes : [];
+      setSuggestions(list);
+      if (list[0]) setReviewText(list[0]);
+    } catch {
+      // No drafts: the customer can still type their own review.
+    } finally {
+      setLoadingSuggestions(false);
     }
   };
 
@@ -182,8 +181,10 @@ export default function FeedbackClient({ qrCodeId, businessName, location, googl
             <p className="text-white/90 text-center font-medium mb-6 leading-relaxed">
               {step === "rating" || step === "saving" ? (
                 <>How was your experience? <br /> Tap a star to rate us.</>
-              ) : step === "happy" ? (
+              ) : rating >= 4 ? (
                 "We're so glad you enjoyed it! 😊"
+              ) : rating === 3 ? (
+                "Thanks for your honest rating! 🙏"
               ) : (
                 "We're sorry it wasn't great. 😔"
               )}
@@ -223,8 +224,8 @@ export default function FeedbackClient({ qrCodeId, businessName, location, googl
               </div>
             )}
 
-            {/* Happy customers: editable review draft -> Google */}
-            {step === "happy" && (
+            {/* Every rating: editable review draft -> Google (1–3 stars may also message the owner privately) */}
+            {step === "review" && (
               <div className="w-full space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
                 {nameInput}
                 <div className="space-y-2">
@@ -267,31 +268,16 @@ export default function FeedbackClient({ qrCodeId, businessName, location, googl
                     Submit Feedback
                   </button>
                 )}
+                {rating <= 3 && (
+                  <button
+                    onClick={sendPrivateFeedback}
+                    disabled={busy || !reviewText.trim()}
+                    className="w-full border border-white/30 text-white text-sm font-semibold py-3 rounded-xl hover:bg-white/10 transition disabled:opacity-50"
+                  >
+                    {busy ? "Sending..." : "Or send it privately to the owner"}
+                  </button>
+                )}
                 <p className="text-white/40 text-[11px] text-center">Please share your honest, real experience.</p>
-              </div>
-            )}
-
-            {/* Unhappy customers: private message to owner, Google stays available */}
-            {step === "unhappy" && (
-              <div className="w-full space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <p className="text-white/70 text-sm text-center">Tell the owner what went wrong — they read every message.</p>
-                {nameInput}
-                <textarea
-                  value={reviewText}
-                  onChange={(e) => setReviewText(e.target.value)}
-                  rows={4}
-                  maxLength={2000}
-                  placeholder="What could we do better?"
-                  className="w-full bg-white/10 border border-white/20 rounded-xl p-3 text-white text-sm leading-relaxed placeholder:text-white/30 outline-none focus:border-white/40 resize-none"
-                />
-                <button
-                  onClick={sendPrivateFeedback}
-                  disabled={busy || !reviewText.trim()}
-                  className="w-full bg-white text-slate-900 text-[15px] font-bold py-3.5 rounded-xl transition disabled:opacity-50"
-                >
-                  {busy ? "Sending..." : "Send to the Owner"}
-                </button>
-                {googleButton("Or post a public review on Google", true)}
               </div>
             )}
           </>
